@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Plex Part Merger</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Plex Part Merger</h1>
+          <p>Drop split video parts, order them, then merge and download.</p>
+        </div>
+        <div id="engineStatus" class="status-pill">Browser merge</div>
+      </header>
+
+      <section class="drop-zone" id="dropZone">
+        <input id="fileInput" type="file" accept="video/*,.mkv,.m4v,.ts,.m2ts" multiple>
+        <div class="drop-copy">
+          <strong>Drop video files here</strong>
+          <span>or click to choose files</span>
+        </div>
+      </section>
+
+      <section class="toolbar">
+        <label class="field-stack" for="outputName">
+          Output name
+          <input id="outputName" type="text" value="Merged Video File" placeholder="Merged Video File">
+        </label>
+        <div class="toolbar-actions">
+          <button id="clearButton" type="button">Clear</button>
+          <button id="mergeButton" class="primary-button" type="button" disabled>Merge and Download</button>
+        </div>
+      </section>
+
+      <section class="file-grid-shell">
+        <div class="grid-header">
+          <span class="order-cell">Order</span>
+          <span>Name</span>
+          <span>Size</span>
+          <span>Type</span>
+          <span></span>
+        </div>
+        <div id="fileList" class="file-grid empty-state">
+          Add at least two video files to begin.
+        </div>
+      </section>
+
+      <section id="jobPanel" class="job-panel hidden">
+        <div class="progress-line">
+          <strong id="jobState">Idle</strong>
+          <span id="jobRuntime"></span>
+        </div>
+        <div id="resultPanel" class="result-panel hidden">
+          <span id="resultName"></span>
+          <a id="downloadAgain" href="#" download>Download again</a>
+        </div>
+        <details class="log-details">
+          <summary>Technical log</summary>
+          <pre id="jobLog"></pre>
+        </details>
+      </section>
+    </main>
+
+    <div id="mergeOverlay" class="merge-overlay hidden" role="status" aria-live="polite">
+      <div class="merge-dialog">
+        <div id="overlayIcon" class="overlay-icon loading-mark"></div>
+        <strong id="overlayTitle">Merging videos</strong>
+        <span id="overlayMessage">Preparing your files.</span>
+        <div class="progress-track">
+          <div id="overlayProgress" class="progress-fill"></div>
+        </div>
+        <span id="overlayDetail">This can take a little while for long seasons.</span>
+      </div>
+    </div>
+
+    <script src="./app.js?v=20260519-6"></script>
+  </body>
+</html>
