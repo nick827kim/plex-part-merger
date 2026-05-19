@@ -51,4 +51,4 @@ Create a Windows installer:
 npm run dist
 ```
 
-The installer is written to `dist/Plex Part Merger Setup 1.0.1.exe`.
+The installer is written to `dist/Plex Part Merger Setup 1.0.2.exe`.
