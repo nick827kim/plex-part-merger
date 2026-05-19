@@ -142,10 +142,41 @@ async function assertFastMergeCompatible(files) {
         "These files are not safe for Fast Merge.",
         "Fast Merge works best when every part comes from the same source and has matching format settings.",
         ...mismatches.slice(0, 6),
-        "For now, use files with matching type/settings, such as all MKV parts from the same release or all MP4 parts from the same source."
+        "Switch to Compatibility Merge for mixed files."
       ].join("\n")
     );
   }
+}
+
+function runFfmpeg(args, event, progressPrefix) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(getFfmpegPath(), args, { windowsHide: true });
+    let settled = false;
+
+    const send = (data) => {
+      const text = data.toString();
+      event.sender.send("merge:log", text);
+
+      const timeMatch = text.match(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/);
+      if (timeMatch) {
+        event.sender.send("merge:progress", { message: `${progressPrefix} ${timeMatch[1]}:${timeMatch[2]}:${timeMatch[3]}` });
+      }
+    };
+
+    proc.stdout.on("data", send);
+    proc.stderr.on("data", send);
+    proc.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    });
+    proc.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg exited with code ${code}.`));
+    });
+  });
 }
 
 function createWindow() {
@@ -201,6 +232,7 @@ ipcMain.handle("merge:choose-output", async (_event, payload) => {
 ipcMain.handle("merge:start", async (event, payload) => {
   const files = Array.isArray(payload.files) ? payload.files : [];
   const output = String(payload.output || "").trim();
+  const mode = payload.mode === "compatibility" ? "compatibility" : "fast";
 
   if (files.length < 2) throw new Error("Choose at least two video files to merge.");
   if (!output) throw new Error("Choose where to save the merged video.");
@@ -210,10 +242,15 @@ ipcMain.handle("merge:start", async (event, payload) => {
     if (!stat || !stat.isFile()) throw new Error(`Missing input file: ${file.path}`);
   }
 
-  event.sender.send("merge:progress", { message: "Checking file compatibility" });
-  await assertFastMergeCompatible(files);
+  if (mode === "fast") {
+    event.sender.send("merge:progress", { message: "Checking file compatibility" });
+    await assertFastMergeCompatible(files);
+  }
 
   await fs.mkdir(path.dirname(output), { recursive: true });
+  if (mode === "compatibility") {
+    return runCompatibilityMerge(event, files, output);
+  }
 
   const listPath = path.join(os.tmpdir(), `plex-part-merger-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`);
   await fs.writeFile(listPath, files.map((file) => concatFileLine(file.path)).join(os.EOL), "utf8");
@@ -256,3 +293,74 @@ ipcMain.handle("merge:start", async (event, payload) => {
     });
   });
 });
+
+function runCompatibilityMerge(event, files, output) {
+  return (async () => {
+    event.sender.send("merge:progress", { message: "Inspecting files for compatibility mode" });
+    const firstProbe = await runFfprobe(files[0].path);
+    const firstVideo = firstStream(firstProbe, "video");
+    const width = firstVideo.width || 1280;
+    const height = firstVideo.height || 720;
+    const frameRate = firstVideo.r_frame_rate && firstVideo.r_frame_rate !== "0/0" ? firstVideo.r_frame_rate : "30000/1001";
+
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "plex-part-merger-compat-"));
+    const segmentPaths = [];
+
+    try {
+      for (let index = 0; index < files.length; index += 1) {
+        const segmentPath = path.join(tempDir, `segment-${String(index + 1).padStart(4, "0")}.ts`);
+        segmentPaths.push(segmentPath);
+        event.sender.send("merge:progress", { message: `Converting file ${index + 1} of ${files.length}` });
+        await runFfmpeg(
+          [
+            "-hide_banner",
+            "-y",
+            "-i",
+            files[index].path,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0?",
+            "-vf",
+            `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${frameRate}`,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "20",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-f",
+            "mpegts",
+            segmentPath
+          ],
+          event,
+          `Converting file ${index + 1} of ${files.length} at`
+        );
+      }
+
+      const listPath = path.join(tempDir, "segments.txt");
+      await fs.writeFile(listPath, segmentPaths.map(concatFileLine).join(os.EOL), "utf8");
+      const finalArgs = ["-hide_banner", "-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy"];
+      if ([".mp4", ".m4v", ".mov"].includes(path.extname(output).toLowerCase())) {
+        finalArgs.push("-movflags", "+faststart");
+      }
+      finalArgs.push(output);
+
+      event.sender.send("merge:progress", { message: "Combining normalized segments" });
+      await runFfmpeg(finalArgs, event, "Combining normalized segments at");
+      return { output };
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
+  })();
+}

@@ -9,6 +9,11 @@ A small desktop app for merging split Plex episode files, such as `Episode - Par
 
 The desktop app uses native ffmpeg locally, which is much faster than browser-only merging for large TV seasons.
 
+## Merge Modes
+
+- `Fast Merge` keeps the original video/audio streams and is best when every part comes from the same source with matching settings.
+- `Compatibility Merge` converts each file to a normalized H.264/AAC segment before merging. Use this for mixed MKV/MP4 files or files that fail Fast Merge. It is slower and keeps the first video/audio track.
+
 ## Run
 
 Desktop app during development:
@@ -34,8 +39,9 @@ http://localhost:4127
 1. Drag video parts into the drop zone, or click it to choose files.
 2. Drag the order cells to reorder the files.
 3. Confirm or edit the output name.
-4. Click `Merge and Save`.
-5. Pick where to save the merged file.
+4. Choose `Fast Merge` for matching files, or `Compatibility Merge` for mixed/weird files.
+5. Click `Merge and Save`.
+6. Pick where to save the merged file.
 
 ## Build
 
@@ -51,4 +57,4 @@ Create a Windows installer:
 npm run dist
 ```
 
-The installer is written to `dist/Plex Part Merger Setup 1.0.2.exe`.
+The installer is written to `dist/Plex Part Merger Setup 1.1.0.exe`.

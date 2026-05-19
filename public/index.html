@@ -29,6 +29,16 @@
           Output name
           <input id="outputName" type="text" value="Merged Video File" placeholder="Merged Video File">
         </label>
+        <fieldset class="mode-toggle" aria-label="Merge mode">
+          <label>
+            <input type="radio" name="mergeMode" value="fast" checked>
+            <span>Fast Merge</span>
+          </label>
+          <label>
+            <input type="radio" name="mergeMode" value="compatibility">
+            <span>Compatibility Merge</span>
+          </label>
+        </fieldset>
         <div class="toolbar-actions">
           <button id="clearButton" type="button">Clear</button>
           <button id="mergeButton" class="primary-button" type="button" disabled>Merge and Download</button>
@@ -77,6 +87,6 @@
       </div>
     </div>
 
-    <script src="./app.js?v=20260519-7"></script>
+    <script src="./app.js?v=20260519-8"></script>
   </body>
 </html>

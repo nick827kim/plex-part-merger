@@ -161,7 +161,7 @@ h1 {
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, auto) auto;
   align-items: end;
   gap: 14px;
   margin: 18px 0;
@@ -169,6 +169,41 @@ h1 {
   border-radius: 8px;
   background: var(--surface);
   padding: 16px;
+}
+
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px;
+  background: #f8fafb;
+}
+
+.mode-toggle label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.mode-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-toggle label:has(input:checked) {
+  background: var(--surface);
+  color: var(--accent-strong);
+  box-shadow: 0 1px 5px rgba(23, 32, 38, 0.1);
 }
 
 .field-stack {
@@ -508,6 +543,10 @@ h1 {
   .topbar,
   .toolbar {
     display: block;
+  }
+
+  .mode-toggle {
+    margin-top: 12px;
   }
 
   .status-pill {

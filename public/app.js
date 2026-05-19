@@ -129,7 +129,8 @@ function sanitizeFileName(name) {
 
 function outputFileName() {
   const rawName = sanitizeFileName(els.outputName.value) || "Merged Video File";
-  const ext = fileExtension(rawName) || fileExtension(state.files[0]?.file.name || "") || ".mp4";
+  const modeDefaultExt = state.isDesktop && selectedMergeMode() === "compatibility" ? ".mp4" : "";
+  const ext = fileExtension(rawName) || modeDefaultExt || fileExtension(state.files[0]?.file.name || "") || ".mp4";
   const base = fileExtension(rawName) ? rawName.slice(0, -fileExtension(rawName).length) : rawName;
   return `${base}${ext}`;
 }
@@ -143,6 +144,15 @@ function desktopDefaultOutputPath() {
 
 function updateMergeButton() {
   els.mergeButton.disabled = state.files.length < 2 || !els.outputName.value.trim() || state.ffmpegLoading || state.mergeInProgress;
+}
+
+function selectedMergeMode() {
+  return document.querySelector("input[name='mergeMode']:checked")?.value || "fast";
+}
+
+function updateMergeButtonLabel() {
+  if (!state.isDesktop) return;
+  els.mergeButton.textContent = selectedMergeMode() === "compatibility" ? "Compatibility Merge and Save" : "Fast Merge and Save";
 }
 
 async function addFiles(fileList) {
@@ -386,6 +396,7 @@ async function mergeWithDesktopFfmpeg() {
 
   const outputName = outputFileName();
   const defaultPath = desktopDefaultOutputPath();
+  const mode = selectedMergeMode();
 
   try {
     const output = await window.desktopAPI.chooseOutput({ defaultPath, outputName });
@@ -396,7 +407,7 @@ async function mergeWithDesktopFfmpeg() {
       return;
     }
 
-    setOverlay("loading", 14, "Starting native merge.", "Using local ffmpeg for speed.");
+    setOverlay("loading", 14, mode === "compatibility" ? "Starting compatibility merge." : "Starting fast merge.", mode === "compatibility" ? "This may take longer because files are converted." : "Using local ffmpeg for speed.");
     appendLog(`Saving to ${output}`);
 
     const removeLog = window.desktopAPI.onMergeLog((message) => {
@@ -409,7 +420,8 @@ async function mergeWithDesktopFfmpeg() {
 
     const result = await window.desktopAPI.merge({
       files: state.files.map((item) => ({ name: item.file.name, path: item.path })),
-      output
+      output,
+      mode
     });
 
     removeLog();
@@ -460,6 +472,11 @@ els.fileInput.addEventListener("change", () => {
   els.fileInput.value = "";
 });
 els.outputName.addEventListener("input", updateMergeButton);
+document.querySelectorAll("input[name='mergeMode']").forEach((input) => {
+  input.addEventListener("change", () => {
+    updateMergeButtonLabel();
+  });
+});
 els.clearButton.addEventListener("click", () => {
   clearDownloadResult();
   state.files = [];
@@ -473,7 +490,7 @@ window.setInterval(updateRuntime, 1000);
 
 if (state.isDesktop) {
   setStatus("Desktop merge", "good");
-  els.mergeButton.textContent = "Merge and Save";
+  updateMergeButtonLabel();
   window.desktopAPI.getMode().catch(() => {});
 } else {
   setStatus("Browser merge", "good");
