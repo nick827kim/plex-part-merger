@@ -29,6 +29,7 @@ const els = {
   downloadAgain: document.querySelector("#downloadAgain"),
   mergeOverlay: document.querySelector("#mergeOverlay"),
   overlayIcon: document.querySelector("#overlayIcon"),
+  overlayClose: document.querySelector("#overlayClose"),
   overlayTitle: document.querySelector("#overlayTitle"),
   overlayMessage: document.querySelector("#overlayMessage"),
   overlayProgress: document.querySelector("#overlayProgress"),
@@ -61,6 +62,7 @@ function appendLog(line) {
 
 function setOverlay(status, percent, message, detail) {
   els.mergeOverlay.classList.remove("hidden");
+  els.overlayClose.classList.add("hidden");
   els.overlayProgress.style.width = `${Math.max(8, Math.min(100, percent))}%`;
   els.overlayMessage.textContent = message;
   els.overlayDetail.textContent = detail || "";
@@ -77,6 +79,7 @@ function setOverlay(status, percent, message, detail) {
     els.overlayIcon.classList.add("failed-mark");
     els.overlayIcon.textContent = "!";
     els.overlayProgress.style.width = "100%";
+    els.overlayClose.classList.remove("hidden");
   } else {
     els.overlayTitle.textContent = "Merging videos";
     els.overlayIcon.classList.add("loading-mark");
@@ -463,6 +466,9 @@ els.clearButton.addEventListener("click", () => {
   renderFiles();
 });
 els.mergeButton.addEventListener("click", mergeAndDownload);
+els.overlayClose.addEventListener("click", () => {
+  els.mergeOverlay.classList.add("hidden");
+});
 window.setInterval(updateRuntime, 1000);
 
 if (state.isDesktop) {

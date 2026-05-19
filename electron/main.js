@@ -10,7 +10,9 @@ function getFfmpegPath() {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
 
   try {
-    return require("ffmpeg-static") || "ffmpeg";
+    const ffmpegPath = require("ffmpeg-static");
+    if (!ffmpegPath) return "ffmpeg";
+    return ffmpegPath.replace("app.asar", "app.asar.unpacked");
   } catch {
     return "ffmpeg";
   }

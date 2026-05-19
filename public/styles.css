@@ -411,6 +411,7 @@ h1 {
 }
 
 .merge-dialog {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 12px;
@@ -421,6 +422,21 @@ h1 {
   box-shadow: 0 22px 70px rgba(23, 32, 38, 0.22);
   padding: 26px;
   text-align: center;
+}
+
+.overlay-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 8px;
+}
+
+.overlay-close:hover {
+  color: var(--ink);
 }
 
 .overlay-icon {
