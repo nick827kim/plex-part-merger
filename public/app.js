@@ -104,6 +104,13 @@ function clearDownloadResult() {
   els.downloadAgain.removeAttribute("download");
 }
 
+function cleanMergeError(message) {
+  return String(message || "The merge did not finish.")
+    .replace(/^Error invoking remote method 'merge:start': Error:\s*/i, "")
+    .replace(/^Error invoking remote method "merge:start": Error:\s*/i, "")
+    .trim();
+}
+
 function basename(filePath) {
   const slash = Math.max(filePath.lastIndexOf("\\"), filePath.lastIndexOf("/"));
   return slash >= 0 ? filePath.slice(slash + 1) : filePath;
@@ -378,10 +385,11 @@ async function mergeAndDownload() {
 
     await Promise.all([...inputNames, "inputs.txt", output].map((name) => ffmpeg.deleteFile(name).catch(() => {})));
   } catch (error) {
+    const message = cleanMergeError(error.message);
     els.jobState.textContent = "Failed";
-    appendLog(error.message);
-    appendLog("If these files do not fast-merge, they may need the server-side/re-encode path later.");
-    setOverlay("failed", 100, "The merge did not finish.", error.message);
+    appendLog(message);
+    appendLog("Try Compatibility Merge if Fast Merge cannot safely combine these files.");
+    setOverlay("failed", 100, "The merge did not finish.", message);
   } finally {
     state.ffmpegLoading = false;
     updateMergeButton();
@@ -438,9 +446,10 @@ async function mergeWithDesktopFfmpeg() {
     setOverlay("done", 100, `${basename(result.output)} is ready.`, "Saved to your selected location.");
     hideOverlaySoon();
   } catch (error) {
+    const message = cleanMergeError(error.message);
     els.jobState.textContent = "Failed";
-    appendLog(error.message);
-    setOverlay("failed", 100, "The merge did not finish.", error.message);
+    appendLog(message);
+    setOverlay("failed", 100, "The merge did not finish.", message);
   } finally {
     state.mergeInProgress = false;
     updateMergeButton();

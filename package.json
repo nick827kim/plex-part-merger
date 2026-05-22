@@ -1,6 +1,6 @@
 {
   "name": "plex-part-merger",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A simple desktop app for merging split Plex episode video files with ffmpeg.",
   "main": "electron/main.js",
   "scripts": {

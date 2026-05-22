@@ -450,7 +450,9 @@ h1 {
   display: grid;
   justify-items: center;
   gap: 12px;
-  width: min(440px, 100%);
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -522,6 +524,12 @@ h1 {
 #overlayMessage,
 #overlayDetail {
   color: var(--muted);
+}
+
+#overlayDetail {
+  max-width: 100%;
+  white-space: pre-line;
+  text-align: left;
 }
 
 #overlayTitle {

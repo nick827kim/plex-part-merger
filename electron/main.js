@@ -104,17 +104,57 @@ function compatibilitySignature(probe) {
   };
 }
 
+function ratioToDecimal(value) {
+  const [numerator, denominator] = String(value || "").split("/").map(Number);
+  if (!numerator || !denominator) return value || "unknown";
+  return (numerator / denominator).toFixed(2).replace(/\.00$/, "");
+}
+
+function containerLabel(value) {
+  return {
+    matroska: "MKV",
+    mp4: "MP4"
+  }[value] || String(value || "unknown").toUpperCase();
+}
+
+function codecLabel(value) {
+  return {
+    aac: "AAC",
+    ac3: "AC-3",
+    eac3: "E-AC-3",
+    h264: "H.264",
+    hevc: "H.265/HEVC",
+    mpeg4: "MPEG-4",
+    opus: "Opus",
+    vp9: "VP9"
+  }[value] || String(value || "unknown").toUpperCase();
+}
+
+function signatureSummary(signature) {
+  const resolution = signature.width && signature.height ? `${signature.width}x${signature.height}` : "unknown size";
+  const frameRate = ratioToDecimal(signature.frameRate);
+  const audio = signature.audioCodec
+    ? `${codecLabel(signature.audioCodec)}, ${signature.sampleRate || "unknown"} Hz, ${signature.channels || "unknown"} channel${signature.channels === 1 ? "" : "s"}`
+    : "none";
+
+  return [
+    `Type: ${containerLabel(signature.container)}`,
+    `Video: ${codecLabel(signature.videoCodec)}, ${resolution}, ${frameRate} fps`,
+    `Audio: ${audio}`
+  ];
+}
+
 function describeMismatch(key) {
   return {
-    container: "container type",
+    container: "file type",
     videoCodec: "video codec",
-    width: "video width",
-    height: "video height",
+    width: "resolution",
+    height: "resolution",
     frameRate: "frame rate",
-    timeBase: "video time base",
+    timeBase: "internal timing",
     audioCodec: "audio codec",
     sampleRate: "audio sample rate",
-    channels: "audio channel count",
+    channels: "audio channels",
     channelLayout: "audio channel layout"
   }[key] || key;
 }
@@ -127,22 +167,35 @@ async function assertFastMergeCompatible(files) {
   }
 
   const reference = probes[0].signature;
-  const mismatches = [];
+  let firstMismatch = null;
   for (const item of probes.slice(1)) {
+    const differences = new Set();
     for (const [key, value] of Object.entries(reference)) {
       if (String(item.signature[key]) !== String(value)) {
-        mismatches.push(`${path.basename(item.file.path)} has a different ${describeMismatch(key)}.`);
+        differences.add(describeMismatch(key));
       }
+    }
+    if (differences.size && !firstMismatch) {
+      firstMismatch = { item, differences: Array.from(differences) };
     }
   }
 
-  if (mismatches.length) {
+  if (firstMismatch) {
+    const referenceFile = path.basename(probes[0].file.path);
+    const mismatchFile = path.basename(firstMismatch.item.file.path);
     throw new Error(
       [
-        "These files are not safe for Fast Merge.",
-        "Fast Merge works best when every part comes from the same source and has matching format settings.",
-        ...mismatches.slice(0, 6),
-        "Switch to Compatibility Merge for mixed files."
+        "Fast Merge cannot safely combine these files because their formats do not match.",
+        "",
+        `First file: ${referenceFile}`,
+        ...signatureSummary(reference),
+        "",
+        `Different file: ${mismatchFile}`,
+        ...signatureSummary(firstMismatch.item.signature),
+        "",
+        `What differs: ${firstMismatch.differences.join(", ")}.`,
+        "",
+        "Use Compatibility Merge to convert them into a matching MP4 first."
       ].join("\n")
     );
   }
